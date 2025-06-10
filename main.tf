@@ -129,4 +129,117 @@ resource "aws_route_table" "public" {
 }
 
 # associate the public route table with the public subnet
-resource 
+resource "aws_route_table_association" "public" {
+    subnet_id = aws_subnet.public.id
+    route_table_id = aws_route_table.public.id
+}
+
+# Security group for ec2 
+resource "aws_security_group" "ec2" {
+    name_prefix "${var.project_name}-ec2-"
+    vpc_id = aws_vpc.main.vpc_id
+
+    # SSH aaccess 
+    ingress = {
+        from_port = 22
+        to_port = 22  
+        protocol = "tcp"
+        cidr_block = var.allowed_cidr_blocks
+    }
+    
+    # All outbound traffic
+    egress = {
+        from_port = 0
+        to_port = 0
+        protocol = "-1"  # -1 means all protocols
+        cidr_block = ["0.0.0.0/0"]
+    }
+    tags = {
+      Name = "${var.project_name}-ec2-sg"
+    }
+}
+
+# Security Group for RDS
+resource "aws_security_group" "rds" {
+  name_prefix = "${var.project_name}-rds-"
+  vpc_id      = aws_vpc.main.id
+
+  # MySQL access from EC2
+  ingress {
+    from_port       = 3306
+    to_port         = 3306
+    protocol        = "tcp"
+    security_groups = [aws_security_group.ec2.id]
+  }
+
+  tags = {
+    Name = "${var.project_name}-rds-sg"
+  }
+}
+
+# EC2 Instance
+
+resource "aws_instance" "web" {
+    ami = data.aws_ami.latest_amazon_linux.id
+    instance_type = t2.micro            # Free tier eligible
+    key_name = aws_key_pair.main.key_name           # using the key pair created earlier
+    vpc_security_group_ids = [aws_security_group.ec2.id]  # Attach the security group
+    subnet_id = aws_subnet.public.id
+    user_data = file(userdata.sh)  # Assuming you have a user_data.sh file for initialization
+    tags = {
+        name = "${var.project_name}-web-server"
+    }
+}
+
+# DB Subnet Group
+resource "aws_db_subnet_group" "main" {
+  name       = "${var.project_name}-db-subnet-group"
+  subnet_ids = [aws_subnet.private_1.id, aws_subnet.private_2.id]
+
+  tags = {
+    Name = "${var.project_name}-db-subnet-group"
+  }
+}
+
+# RDS Instance
+resource "aws_db_instance" "main" {
+    identifier = "${var.project_name}-database"
+    # free teir eligible instance type
+    engine = "mysql"
+    engine_version = "8.0.28"
+    instance_class = "db.t3.micro"
+    allocated_storage = 20
+
+    # Database Configuration
+    db_name = "mydatabase"
+    username = "var.db_username"
+    password = random_password.db_pass.result
+
+    # network configuration
+    db_subnet_group_name = aws_db_subnet_group.main.name
+    vpc_security_group_ids = [aws_security_group.rds.id]
+
+    # Backup and maintenance
+  backup_retention_period = 7
+  backup_window          = "03:00-04:00"
+  maintenance_window     = "sun:04:00-sun:05:00"
+  
+  # Free tier optimizations
+  skip_final_snapshot = true
+  deletion_protection = false
+
+  tags = {
+    Name = "${var.project_name}-database"
+  }
+}
+
+# Store database password in AWS Systems Manager Parameter Store
+resource "aws_ssm_parameter" "db_password" {
+  name  = "/${var.project_name}/database/password"
+  type  = "SecureString"
+  value = random_password.db_password.result
+
+  tags = {
+    Name = "${var.project_name}-db-password"
+  }
+}
