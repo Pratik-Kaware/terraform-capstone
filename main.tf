@@ -47,7 +47,7 @@ resource "aws_key_pair" "main" {
 }
 
 # data source to get available AZs
-data "aws_avaiable_zones" "available" {
+data "aws_availability_zones" "available" {
   state = "available"
 }
 
@@ -85,7 +85,7 @@ resource "aws_internet_gateway" "main" {
 resource "aws_subnet" "public" {
     vpc_id = aws_vpc.main.id
     cidr_block = var.public_subnet_cidr
-    availability_zone = data.aws_avaiable_zones.available.names[0]  # Use the first available AZ
+    availability_zone = data.aws_availability_zones.available.names[0]  # Use the first available AZ
     map_public_ip_on_launch = true
     tags = {
         name = "${var.project_name}-public-subnet"
@@ -96,7 +96,7 @@ resource "aws_subnet" "public" {
 resource "aws_subnet" "private_1" {
     vpc_id = aws_vpc.main.id
     cidr_block = var.private_subnet_cidr
-    availability_zone = data.aws_avaiable_zones.available.names[0]
+    availability_zone = data.aws_availability_zones.available.names[0]
     map_public_ip_on_launch = true
     tags = {
         name = "${var.project_name}-private-subnet-1"
@@ -107,7 +107,7 @@ resource "aws_subnet" "private_1" {
 resource "aws_subnet" "private_2" {
     vpc_id = aws_vpc.main.id
     cidr_block = "10.0.3.0/24"
-    availability_zone = data.aws_avaiable_zones.available.names[1]  # Use the second available AZ
+    availability_zone = data.aws_availability_zones.available.names[1]  # Use the second available AZ
     map_public_ip_on_launch = true
     tags = {
         name = "${var.project_name}-private-subnet-2"
@@ -137,22 +137,22 @@ resource "aws_route_table_association" "public" {
 # Security group for ec2 
 resource "aws_security_group" "ec2" {
     name_prefix = "${var.project_name}-ec2-"
-    vpc_id = aws_vpc.main.vpc_id
+    vpc_id = aws_vpc.main.id
 
     # SSH aaccess 
-    ingress = {
+    ingress {
         from_port = 22
         to_port = 22  
         protocol = "tcp"
-        cidr_block = var.allowed_cidr_blocks
+        cidr_blocks = var.allowed_cidr_blocks
     }
     
     # All outbound traffic
-    egress = {
+    egress  {
         from_port = 0
         to_port = 0
         protocol = "-1"  # -1 means all protocols
-        cidr_block = ["0.0.0.0/0"]
+        cidr_blocks = ["0.0.0.0/0"]
     }
     tags = {
       Name = "${var.project_name}-ec2-sg"
@@ -181,11 +181,11 @@ resource "aws_security_group" "rds" {
 
 resource "aws_instance" "web" {
     ami = data.aws_ami.latest_amazon_linux.id
-    instance_type = t2.micro            # Free tier eligible
+    instance_type = "t2.micro"            # Free tier eligible
     key_name = aws_key_pair.main.key_name           # using the key pair created earlier
     vpc_security_group_ids = [aws_security_group.ec2.id]  # Attach the security group
     subnet_id = aws_subnet.public.id
-    user_data = file(userdata.sh)  # Assuming you have a user_data.sh file for initialization
+    user_data = file("userdata.sh")  # Assuming you have a user_data.sh file for initialization
     tags = {
         name = "${var.project_name}-web-server"
     }
@@ -206,13 +206,13 @@ resource "aws_db_instance" "main" {
     identifier = "${var.project_name}-database"
     # free teir eligible instance type
     engine = "mysql"
-    engine_version = "8.0.28"
+    engine_version = "8.0"
     instance_class = "db.t3.micro"
     allocated_storage = 20
 
     # Database Configuration
     db_name = "mydatabase"
-    username = "var.db_username"
+    username = var.db_username
     password = random_password.db_pass.result
 
     # network configuration
@@ -237,7 +237,7 @@ resource "aws_db_instance" "main" {
 resource "aws_ssm_parameter" "db_password" {
   name  = "/${var.project_name}/database/password"
   type  = "SecureString"
-  value = random_password.db_password.result
+  value = random_password.db_pass.result
 
   tags = {
     Name = "${var.project_name}-db-password"
