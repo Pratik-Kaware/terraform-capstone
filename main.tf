@@ -136,7 +136,7 @@ resource "aws_route_table_association" "public" {
 
 # Security group for ec2 
 resource "aws_security_group" "ec2" {
-    name_prefix "${var.project_name}-ec2-"
+    name_prefix = "${var.project_name}-ec2-"
     vpc_id = aws_vpc.main.vpc_id
 
     # SSH aaccess 
