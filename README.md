@@ -1,10 +1,3 @@
-<img src="https://r2cdn.perplexity.ai/pplx-full-logo-primary-dark%402x.png" class="logo" width="120"/>
-
-## Professional README for: Complete Terraform AWS EC2 + RDS Setup for Beginners
-
-
----
-
 # Complete Terraform AWS EC2 + RDS Setup for Beginners (100% Terraform)
 
 A step-by-step, production-grade starter project to provision a secure, scalable AWS infrastructure using only Terraform. This template automates the creation of a VPC, public/private subnets, EC2 instance, and MySQL RDS database—ideal for learning, prototyping, or bootstrapping real-world cloud deployments.
@@ -171,6 +164,3 @@ Inspired by best practices in cloud automation and open-source DevOps communitie
 [See full code and instructions above for details.][^1]
 
 <div style="text-align: center">⁂</div>
-
-[^1]: paste.txt
-
