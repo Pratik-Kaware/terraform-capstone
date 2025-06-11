@@ -1,0 +1,66 @@
+name: Terraform CI/CD
+
+on: 
+  push:
+    paths:
+      - 'terraform/**'
+      - '.github/workflows/terraformcicd.yaml'
+      - 'terraform.tfvars'
+      - '**/userdata.sh'
+  pull_request:
+    paths:
+      - 'terraform/**'
+      - '.github/workflows/terraformcicd.yaml'
+      - 'terraform.tfvars'
+      - '**/userdata.sh'
+
+jobs: 
+  terraform-plan:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v3
+        
+      - name: Terraform Init
+        run: terrafrom init
+
+      - name: Terraform Validate
+        run: terraform validate
+
+      - name: Terraform Plan
+        run: terraform plan -out=tfplan
+
+      - name: Save Plan Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: tfplan
+          path: tfplan
+      
+      - name: Show Plan
+        run: terraform show -no-color tfplan
+
+
+  terraform-apply:
+    runs-on: ubuntu-latest
+    needs: terraform-plan
+    if: github.event_name == 'workflow_dispatch'
+    steps: 
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Download Plan Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: tfplan
+
+      - name: Terraform Init
+        run: terraform init
+      
+      - name: Terraform Apply (Manual Trigger)
+        run: terraform apply tfplan
