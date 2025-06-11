@@ -68,3 +68,20 @@ jobs:
       
       - name: Terraform Apply (Manual Trigger)
         run: terraform apply tfplan
+
+  terraform-destroy:
+    runs-on: ubuntu-latest
+    needs: terraform-plan
+    if: github.event_name == 'workflow_dispatch'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Terraform Init
+        run: terraform init
+      
+      - name: Terraform Destroy (Manual Trigger)
+        run: terraform destroy 

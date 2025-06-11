@@ -123,7 +123,38 @@ To avoid AWS charges, destroy all resources when finished:
 ```bash
 terraform destroy
 ```
+---
 
+## 🚦 CI/CD Pipeline (GitHub Actions)
+
+This project includes a ready-to-use GitHub Actions workflow for automated infrastructure management.
+
+- **On every push or pull request:**  
+  The pipeline runs `terraform init` and `terraform plan`, saving the plan as an artifact and showing the output in the Actions log.
+- **Manual Apply:**  
+  To apply changes, a user must manually trigger the workflow from the GitHub Actions tab. This ensures only reviewed and approved changes are applied.
+
+### **Setup Steps:**
+
+1. **Add AWS Credentials as Repository Secrets:**
+   - Go to your GitHub repository → Settings → Secrets and variables → Actions.
+   - Add the following secrets:
+     - `AWS_ACCESS_KEY_ID`
+     - `AWS_SECRET_ACCESS_KEY`
+     - *(Optional but recommended)* `AWS_REGION`
+
+2. **Trigger the Workflow:**
+   - Go to the **Actions** tab in your GitHub repository.
+   - Select the "Terraform CI/CD" workflow.
+   - Click **"Run workflow"** to start the process manually, or push changes to trigger the plan automatically.
+
+3. **Manual Apply:**
+   - After reviewing the plan in the Actions log, trigger the "Apply" job manually (if configured as a separate manual step).
+
+#### **Workflow File Location:**
+- `.github/workflows/terraformcicd.yaml`
+
+---
 
 ---
 
